@@ -1,7 +1,6 @@
 package main
 
 import (
-	"fmt"
 	"log"
 	"os"
 	"path/filepath"
@@ -10,7 +9,6 @@ import (
 )
 
 func main() {
-	fmt.Println(os.Args)
 	if len(os.Args) < 3 {
 		log.Fatal("Usage: ip_of_dashcam save_directory")
 	}

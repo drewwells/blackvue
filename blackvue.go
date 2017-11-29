@@ -89,12 +89,12 @@ func (c *Client) List() (Videos, error) {
 // Sync pulls all the video files not found in path
 func (c *Client) Sync(path string) error {
 	rearDir := filepath.Join(path, "rear")
-	if err := os.MkdirAll(rearDir, 744); err != nil {
+	if err := os.MkdirAll(rearDir, 0755); err != nil {
 		log.Fatal(err)
 	}
 
 	frontDir := filepath.Join(path, "front")
-	if err := os.MkdirAll(frontDir, 744); err != nil {
+	if err := os.MkdirAll(frontDir, 0755); err != nil {
 		log.Fatal(err)
 	}
 
