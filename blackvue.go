@@ -114,7 +114,7 @@ func (c *Client) sync(path string, vids Videos) error {
 	for _, rear := range vids.Rear {
 		path := filepath.Join(rearDir, rear.MP4())
 		if _, err := os.Stat(path); err != nil {
-			if err := c.fetchVideo(path, rear); err != nil {
+			if err := c.fetchVideo(rearDir, rear); err != nil {
 				log.Printf("failed to fetch video %s: %s\n", rear, err)
 			}
 		}
@@ -123,7 +123,7 @@ func (c *Client) sync(path string, vids Videos) error {
 	for _, front := range vids.Front {
 		path := filepath.Join(frontDir, front.MP4())
 		if _, err := os.Stat(path); err == nil {
-			if err := c.fetchVideo(path, front); err != nil {
+			if err := c.fetchVideo(frontDir, front); err != nil {
 				log.Printf("failed to fetch video %s: %s\n", front, err)
 			}
 		}
@@ -132,11 +132,11 @@ func (c *Client) sync(path string, vids Videos) error {
 }
 
 func (c *Client) fetchVideo(path string, vid Video) error {
-	outMP4, err := os.Create(path)
+	outMP4, err := os.Create(filepath.Join(path, vid.MP4()))
 	if err != nil {
 		return err
 	}
-	outTHM, err := os.Create(path)
+	outTHM, err := os.Create(filepath.Join(path, vid.THM()))
 	if err != nil {
 		return err
 	}
