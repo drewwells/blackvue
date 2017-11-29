@@ -9,6 +9,7 @@ import (
 	"os"
 	"path/filepath"
 	"strings"
+	"sync"
 	"time"
 )
 
@@ -111,23 +112,40 @@ func (c *Client) sync(path string, vids Videos) error {
 	rearDir := filepath.Join(path, "rear")
 	frontDir := filepath.Join(path, "front")
 
-	for _, rear := range vids.Rear {
-		path := filepath.Join(rearDir, rear.MP4())
-		if _, err := os.Stat(path); err != nil {
-			if err := c.fetchVideo(rearDir, rear); err != nil {
-				log.Printf("failed to fetch video %s: %s\n", rear, err)
+	// It's unlikely this is more efficient, but at least
+	// we don't have to wait for rear to finish first
+	wg := sync.WaitGroup{}
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for _, vid := range vids.Rear {
+			path := filepath.Join(rearDir, vid.MP4())
+			_, err := os.Stat(path)
+			// If file not found, download it
+			if err != nil {
+				if err := c.fetchVideo(rearDir, vid); err != nil {
+					log.Printf("failed to fetch video %s: %s\n", vid, err)
+				}
 			}
 		}
-	}
+	}()
 
-	for _, front := range vids.Front {
-		path := filepath.Join(frontDir, front.MP4())
-		if _, err := os.Stat(path); err == nil {
-			if err := c.fetchVideo(frontDir, front); err != nil {
-				log.Printf("failed to fetch video %s: %s\n", front, err)
+	wg.Add(1)
+	go func() {
+		defer wg.Done()
+		for _, vid := range vids.Front {
+			path := filepath.Join(frontDir, vid.MP4())
+			_, err := os.Stat(path)
+			// If file not found, download it
+			if err != nil {
+				if err := c.fetchVideo(frontDir, vid); err != nil {
+					log.Printf("failed to fetch video %s: %s\n", vid, err)
+				}
 			}
 		}
-	}
+	}()
+
+	wg.Wait()
 	return nil
 }
 
@@ -141,10 +159,9 @@ func (c *Client) fetchVideo(path string, vid Video) error {
 		return err
 	}
 
-	log.Printf("fetching %s\n", vid)
-
 	// mp4
 	uri := fmt.Sprintf("http://%s/Record/%s", c.ip, vid.MP4())
+	log.Printf("saving %s to %s\n", uri, outMP4.Name())
 	resp, err := http.Get(uri)
 	if err != nil {
 		return err
@@ -155,7 +172,8 @@ func (c *Client) fetchVideo(path string, vid Video) error {
 	}
 
 	// thm
-	path = fmt.Sprintf("http://%s/Record/%s", c.ip, vid.THM())
+	uri = fmt.Sprintf("http://%s/Record/%s", c.ip, vid.THM())
+	log.Printf("saving %s to %s\n", uri, outTHM.Name())
 	resp, err = http.Get(uri)
 	if err != nil {
 		return err
