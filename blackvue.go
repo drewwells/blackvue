@@ -87,6 +87,47 @@ func (c *Client) List() (Videos, error) {
 	return c.list()
 }
 
+type Summary struct {
+	FrontCount, RearCount int
+	FrontTotal, RearTotal int
+}
+
+func (c *Client) Status(path string) (*Summary, error) {
+	rearDir := filepath.Join(path, "rear")
+	frontDir := filepath.Join(path, "front")
+
+	vids, err := c.list()
+	if err != nil {
+		return nil, err
+	}
+
+	var (
+		rearCount, frontCount int
+	)
+	for _, vid := range vids.Rear {
+		path := filepath.Join(rearDir, vid.MP4())
+		_, err := os.Stat(path)
+		if err != nil {
+			rearCount++
+		}
+	}
+
+	for _, vid := range vids.Front {
+		path := filepath.Join(frontDir, vid.MP4())
+		_, err := os.Stat(path)
+		if err != nil {
+			frontCount++
+		}
+	}
+
+	return &Summary{
+		FrontCount: frontCount,
+		FrontTotal: len(vids.Front),
+		RearCount:  rearCount,
+		RearTotal:  len(vids.Rear),
+	}, nil
+}
+
 // Sync pulls all the video files not found in path
 func (c *Client) Sync(path string) error {
 	rearDir := filepath.Join(path, "rear")
