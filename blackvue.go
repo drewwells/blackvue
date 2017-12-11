@@ -92,10 +92,7 @@ type Summary struct {
 	FrontTotal, RearTotal int
 }
 
-func (c *Client) Status(path string) (*Summary, error) {
-	rearDir := filepath.Join(path, "rear")
-	frontDir := filepath.Join(path, "front")
-
+func (c *Client) Status(dir string) (*Summary, error) {
 	vids, err := c.list()
 	if err != nil {
 		return nil, err
@@ -105,7 +102,7 @@ func (c *Client) Status(path string) (*Summary, error) {
 		rearCount, frontCount int
 	)
 	for _, vid := range vids.Rear {
-		path := filepath.Join(rearDir, vid.MP4())
+		path := filepath.Join(dir, vid.MP4())
 		_, err := os.Stat(path)
 		if err != nil {
 			rearCount++
@@ -113,7 +110,7 @@ func (c *Client) Status(path string) (*Summary, error) {
 	}
 
 	for _, vid := range vids.Front {
-		path := filepath.Join(frontDir, vid.MP4())
+		path := filepath.Join(dir, vid.MP4())
 		_, err := os.Stat(path)
 		if err != nil {
 			frontCount++
@@ -129,14 +126,8 @@ func (c *Client) Status(path string) (*Summary, error) {
 }
 
 // Sync pulls all the video files not found in path
-func (c *Client) Sync(path string) error {
-	rearDir := filepath.Join(path, "rear")
-	if err := os.MkdirAll(rearDir, 0755); err != nil {
-		log.Fatal(err)
-	}
-
-	frontDir := filepath.Join(path, "front")
-	if err := os.MkdirAll(frontDir, 0755); err != nil {
+func (c *Client) Sync(dir string) error {
+	if err := os.MkdirAll(dir, 0755); err != nil {
 		log.Fatal(err)
 	}
 
@@ -145,13 +136,10 @@ func (c *Client) Sync(path string) error {
 		return err
 	}
 
-	return c.sync(path, vids)
+	return c.sync(dir, vids)
 }
 
-func (c *Client) sync(path string, vids Videos) error {
-
-	rearDir := filepath.Join(path, "rear")
-	frontDir := filepath.Join(path, "front")
+func (c *Client) sync(dir string, vids Videos) error {
 
 	// It's unlikely this is more efficient, but at least
 	// we don't have to wait for rear to finish first
@@ -160,11 +148,11 @@ func (c *Client) sync(path string, vids Videos) error {
 	go func() {
 		defer wg.Done()
 		for _, vid := range vids.Rear {
-			path := filepath.Join(rearDir, vid.MP4())
+			path := filepath.Join(dir, vid.MP4())
 			_, err := os.Stat(path)
 			// If file not found, download it
 			if err != nil {
-				if err := c.fetchVideo(rearDir, vid); err != nil {
+				if err := c.fetchVideo(dir, vid); err != nil {
 					log.Printf("failed to fetch video %s: %s\n", vid, err)
 				}
 			}
@@ -175,11 +163,11 @@ func (c *Client) sync(path string, vids Videos) error {
 	go func() {
 		defer wg.Done()
 		for _, vid := range vids.Front {
-			path := filepath.Join(frontDir, vid.MP4())
+			path := filepath.Join(dir, vid.MP4())
 			_, err := os.Stat(path)
 			// If file not found, download it
 			if err != nil {
-				if err := c.fetchVideo(frontDir, vid); err != nil {
+				if err := c.fetchVideo(dir, vid); err != nil {
 					log.Printf("failed to fetch video %s: %s\n", vid, err)
 				}
 			}
